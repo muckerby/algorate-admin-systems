@@ -87,20 +87,24 @@ class MeetingsImportService:
         Process a single meeting and insert/update in database
         Returns 'inserted' or 'updated'
         """
-        # Extract meeting data
-        pf_meeting_id = str(meeting_data.get('MeetingId', ''))
-        track_name = meeting_data.get('TrackName', '')
-        track_id = str(meeting_data.get('TrackId', ''))
-        track_state = meeting_data.get('TrackState', '')
-        track_location = meeting_data.get('TrackLocation', '')
-        track_abbreviation = meeting_data.get('TrackAbbreviation', '')
-        stage = meeting_data.get('Stage', 'A')
-        tab_meeting = meeting_data.get('TabMeeting', True)
-        rail_position = meeting_data.get('RailPosition', '')
-        expected_condition = meeting_data.get('ExpectedCondition', '')
-        is_barrier_trial = meeting_data.get('IsBarrierTrial', False)
-        is_jumps = meeting_data.get('IsJumps', False)
-        has_sectionals = meeting_data.get('HasSectionals', False)
+        # Extract meeting data with correct field names
+        pf_meeting_id = str(meeting_data.get('meetingId', ''))
+        
+        # Track data is nested in 'track' object
+        track_data = meeting_data.get('track', {})
+        track_name = track_data.get('name', '')
+        track_id = str(track_data.get('trackId', ''))
+        track_state = track_data.get('state', '')
+        track_location = track_data.get('location', '')
+        track_abbreviation = track_data.get('abbrev', '')
+        
+        stage = meeting_data.get('stage', 'A')
+        tab_meeting = meeting_data.get('tabMeeting', True)
+        rail_position = meeting_data.get('railPosition', '')
+        expected_condition = meeting_data.get('expectedCondition', '')
+        is_barrier_trial = meeting_data.get('isBarrierTrial', False)
+        is_jumps = meeting_data.get('isJumps', False)
+        has_sectionals = meeting_data.get('hasSectionals', False)
         
         # Prepare meeting record
         meeting_record = {
