@@ -352,10 +352,29 @@
         
         // Test API connection
         async function testConnection() {
+            const dateInput = document.getElementById('import-date').value;
+            
             setLoading(true);
             
             try {
-                const response = await fetch(`${API_BASE}/import/meetings/test`);
+                let url = `${API_BASE}/import/meetings/test`;
+                let options = {
+                    method: 'GET'
+                };
+                
+                if (dateInput) {
+                    // Send as POST with JSON payload if date is provided
+                    url = `${API_BASE}/import/meetings/test`;
+                    options = {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ date: dateInput })
+                    };
+                }
+                
+                const response = await fetch(url, options);
                 const result = await response.json();
                 
                 if (result.success) {

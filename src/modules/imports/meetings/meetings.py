@@ -192,7 +192,7 @@ def get_import_logs():
             'error': f"Failed to get logs: {str(e)}"
         }), 500
 
-@meetings_bp.route('/import/meetings/test', methods=['GET'])
+@meetings_bp.route('/import/meetings/test', methods=['GET', 'POST'])
 def test_api_connection():
     """Test API connectivity"""
     try:
@@ -203,9 +203,30 @@ def test_api_connection():
                 'error': 'API key not configured'
             }), 500
         
-        # Test with tomorrow's date
-        tomorrow = datetime.now() + timedelta(days=1)
-        test_date = tomorrow.strftime('%Y-%m-%d')
+        # Get date from request or use tomorrow as default
+        date_str = None
+        if request.method == 'POST':
+            data = request.get_json() or {}
+            date_str = data.get('date')
+        else:
+            date_str = request.args.get('date')
+        
+        if date_str:
+            # Convert from Australian format DD/MM/YYYY to ISO format
+            try:
+                date_obj = datetime.strptime(date_str, '%d/%m/%Y')
+                test_date = date_obj.strftime('%Y-%m-%d')
+                display_date = date_str
+            except ValueError:
+                return jsonify({
+                    'success': False,
+                    'error': 'Invalid date format. Use DD/MM/YYYY format.'
+                }), 400
+        else:
+            # Default to tomorrow
+            tomorrow = datetime.now() + timedelta(days=1)
+            test_date = tomorrow.strftime('%Y-%m-%d')
+            display_date = tomorrow.strftime('%d/%m/%Y')
         
         url = "https://api.puntingform.com.au/v2/form/meetingslist"
         params = {
@@ -221,11 +242,11 @@ def test_api_connection():
             
             return jsonify({
                 'success': True,
-                'message': f'API connection successful. Found {meeting_count} meetings for {tomorrow.strftime("%d/%m/%Y")}',
+                'message': f'API connection successful. Found {meeting_count} meetings for {display_date}',
                 'data': {
                     'status_code': response.status_code,
                     'meeting_count': meeting_count,
-                    'test_date': tomorrow.strftime('%d/%m/%Y')
+                    'test_date': display_date
                 }
             })
         else:
