@@ -5,15 +5,13 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, send_from_directory
 from flask_cors import CORS
-from src.shared.user import db
-from src.shared.import_log import ImportLog
 from src.modules.admin.user import user_bp
 from src.modules.admin.dashboard import admin_bp
 from src.modules.imports.meetings.meetings import meetings_bp
-from src.modules.auth.auth import auth_bp, init_auth
+from src.modules.auth.auth import auth_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default-secret-key-change-in-production')
 
 # Enable CORS for all routes
 CORS(app)
@@ -22,14 +20,6 @@ app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(admin_bp, url_prefix='/api')
 app.register_blueprint(meetings_bp, url_prefix='/api')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
-
-# uncomment if you need to use database
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}"
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db.init_app(app)
-with app.app_context():
-    db.create_all()
-    init_auth()  # Initialize authentication system
 
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
