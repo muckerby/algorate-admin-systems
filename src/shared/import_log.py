@@ -45,7 +45,7 @@ class ImportLogService:
                 update_data['completed_at'] = datetime.now().isoformat()
         
         if message:
-            update_data['message'] = message
+            update_data['api_response_summary'] = message
         
         if error_message:
             update_data['error_message'] = error_message
