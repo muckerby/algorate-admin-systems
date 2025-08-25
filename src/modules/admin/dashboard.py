@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
 from datetime import datetime
-from src.shared.import_log import ImportLog
+from src.shared.import_log import ImportLogService
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -8,13 +8,16 @@ admin_bp = Blueprint('admin', __name__)
 def get_dashboard_stats():
     """Get overall dashboard statistics"""
     try:
-        # Get import statistics
-        total_imports = ImportLog.query.count()
-        successful_imports = ImportLog.query.filter_by(status='completed').count()
-        failed_imports = ImportLog.query.filter_by(status='failed').count()
+        log_service = ImportLogService()
         
-        # Get recent activity
-        recent_imports = ImportLog.query.order_by(ImportLog.started_at.desc()).limit(5).all()
+        # Get import statistics
+        logs = log_service.get_recent_logs(limit=100)  # Get more logs for stats
+        total_imports = len(logs)
+        successful_imports = len([log for log in logs if log.get('status') == 'completed'])
+        failed_imports = len([log for log in logs if log.get('status') == 'failed'])
+        
+        # Get recent activity (last 5)
+        recent_imports = logs[:5]
         
         # Calculate success rate
         success_rate = (successful_imports / total_imports * 100) if total_imports > 0 else 0
@@ -26,7 +29,7 @@ def get_dashboard_stats():
                 'successful_imports': successful_imports,
                 'failed_imports': failed_imports,
                 'success_rate': round(success_rate, 1),
-                'recent_activity': [log.to_dict() for log in recent_imports]
+                'recent_activity': recent_imports
             }
         })
         
@@ -40,6 +43,8 @@ def get_dashboard_stats():
 def get_system_health():
     """Get system health status"""
     try:
+        log_service = ImportLogService()
+        
         # Basic health checks
         health_status = {
             'database': 'healthy',  # Could add actual DB ping
@@ -49,12 +54,13 @@ def get_system_health():
         }
         
         # Get last import status
-        last_import = ImportLog.query.order_by(ImportLog.started_at.desc()).first()
-        if last_import:
+        recent_logs = log_service.get_recent_logs(limit=1)
+        if recent_logs:
+            last_import = recent_logs[0]
             health_status['last_import'] = {
-                'status': last_import.status,
-                'started_at': last_import.started_at.isoformat() if last_import.started_at else None,
-                'import_type': last_import.import_type
+                'status': last_import.get('status'),
+                'started_at': last_import.get('started_at'),
+                'import_type': last_import.get('import_type')
             }
         
         return jsonify({
