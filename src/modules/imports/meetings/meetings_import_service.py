@@ -29,7 +29,7 @@ class MeetingsImportService:
             # Fetch meetings from API
             meetings_data = self._fetch_meetings_from_api(date_str)
             
-            if not meetings_data or 'Meetings' not in meetings_data:
+            if not meetings_data or 'payLoad' not in meetings_data:
                 return {
                     'total_meetings': 0,
                     'inserted': 0,
@@ -38,7 +38,7 @@ class MeetingsImportService:
                     'message': 'No meetings found for this date'
                 }
             
-            meetings = meetings_data['Meetings']
+            meetings = meetings_data['payLoad']
             total_meetings = len(meetings)
             inserted = 0
             updated = 0
