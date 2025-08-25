@@ -39,7 +39,7 @@ def import_meetings():
         log_id = log_service.create_log(
             import_type='meetings',
             trigger_type='manual',
-            target_date=iso_date
+            import_date=iso_date
         )
         
         try:

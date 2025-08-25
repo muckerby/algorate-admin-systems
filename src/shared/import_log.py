@@ -13,14 +13,14 @@ class ImportLogService:
         
         self.supabase: Client = create_client(supabase_url, supabase_key)
     
-    def create_log(self, import_type, trigger_type, target_date=None):
+    def create_log(self, import_type, trigger_type, import_date=None):
         """Create a new import log entry"""
         log_data = {
             'import_type': import_type,
             'trigger_type': trigger_type,
             'status': 'running',
             'started_at': datetime.now().isoformat(),
-            'target_date': target_date,
+            'import_date': import_date,
             'records_processed': 0,
             'records_inserted': 0,
             'records_updated': 0,
