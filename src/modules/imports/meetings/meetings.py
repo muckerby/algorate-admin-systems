@@ -2,8 +2,8 @@ from flask import Blueprint, jsonify, request
 from datetime import datetime, timedelta
 import requests
 import os
-from src.models.import_log import ImportLog, db
-from src.services.meetings_import_service import MeetingsImportService
+from src.shared.import_log import ImportLog, db
+from src.modules.imports.meetings.meetings_import_service import MeetingsImportService
 
 meetings_bp = Blueprint('meetings', __name__)
 
