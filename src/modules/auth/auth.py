@@ -16,17 +16,15 @@ def init_auth():
 
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Simple admin login (placeholder)"""
+    """Simple admin login"""
     try:
         data = request.get_json()
         password = data.get('password', '')
         
-        if not ADMIN_PASSWORD_HASH:
-            init_auth()
+        # Get admin password directly from environment (no hashing for simplicity)
+        admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
         
-        password_hash = hashlib.sha256(password.encode()).hexdigest()
-        
-        if password_hash == ADMIN_PASSWORD_HASH:
+        if password == admin_password:
             session['authenticated'] = True
             session['login_time'] = datetime.now().isoformat()
             
