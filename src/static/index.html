@@ -237,6 +237,7 @@
             <button class="btn btn-success" onclick="runImport()">Run Import Now</button>
             <button class="btn btn-warning" onclick="testConnection()">Test API Connection</button>
             <button class="btn" onclick="refreshStatus()">Refresh Status</button>
+            <button class="btn" onclick="clearTestData()" style="background: #e74c3c;">Clear Test Data</button>
             
             <div class="loading" id="loading">Processing...</div>
             <div class="error-message" id="error-message"></div>
@@ -462,6 +463,41 @@
             } catch (error) {
                 console.error('Failed to load logs:', error);
                 document.getElementById('logs-container').innerHTML = '<div class="log-entry log-error">Failed to load logs</div>';
+            }
+        }
+        
+        async function clearTestData() {
+            if (!confirm('Are you sure you want to clear all test data? This will delete all meetings and import logs.')) {
+                return;
+            }
+            
+            showLoading();
+            hideMessages();
+            
+            try {
+                const response = await fetch('/api/admin/clear-test-data', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        clear_meetings: true,
+                        clear_logs: true
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showSuccess(`Test data cleared successfully. ${JSON.stringify(data.results)}`);
+                    refreshStatus(); // Refresh to show empty state
+                } else {
+                    showError(data.error || 'Failed to clear test data');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                hideLoading();
             }
         }
         

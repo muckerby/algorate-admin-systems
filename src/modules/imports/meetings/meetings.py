@@ -272,3 +272,51 @@ def test_api_connection():
             'error': f"API test failed: {str(e)}"
         }), 500
 
+
+
+@meetings_bp.route('/admin/clear-test-data', methods=['POST'])
+def clear_test_data():
+    """Clear test data from meetings and import_logs tables"""
+    try:
+        from src.modules.imports.meetings.meetings_import_service import MeetingsImportService
+        
+        # Initialize the service (which has Supabase access)
+        service = MeetingsImportService()
+        
+        # Get request parameters
+        data = request.get_json() or {}
+        clear_meetings = data.get('clear_meetings', True)
+        clear_logs = data.get('clear_logs', True)
+        
+        results = {}
+        
+        # Clear meetings table
+        if clear_meetings:
+            try:
+                # Delete all meetings
+                meetings_result = service.supabase.table('meetings').delete().neq('meeting_id', 0).execute()
+                results['meetings_cleared'] = len(meetings_result.data) if meetings_result.data else 0
+            except Exception as e:
+                results['meetings_error'] = str(e)
+        
+        # Clear import_logs table  
+        if clear_logs:
+            try:
+                # Delete all import logs
+                logs_result = service.supabase.table('import_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
+                results['logs_cleared'] = len(logs_result.data) if logs_result.data else 0
+            except Exception as e:
+                results['logs_error'] = str(e)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Test data cleared successfully',
+            'results': results
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': f"Failed to clear test data: {str(e)}"
+        }), 500
+
