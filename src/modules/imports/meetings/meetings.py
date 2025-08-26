@@ -1,9 +1,12 @@
 from flask import Blueprint, jsonify, request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import requests
 import os
 from src.shared.import_log import ImportLogService
 from src.modules.imports.meetings.meetings_import_service import MeetingsImportService
+
+# Define AEST timezone (UTC+10)
+AEST = timezone(timedelta(hours=10))
 
 meetings_bp = Blueprint('meetings', __name__)
 
@@ -106,14 +109,16 @@ def get_import_status():
         
         if last_log.get('started_at'):
             started_dt = datetime.fromisoformat(last_log['started_at'].replace('Z', '+00:00'))
-            started_at_display = started_dt.strftime('%d/%m/%Y %I:%M %p AEST')
+            started_aest = started_dt.astimezone(AEST)
+            started_at_display = started_aest.strftime('%d/%m/%Y %I:%M %p AEST')
         
         if last_log.get('completed_at'):
             completed_dt = datetime.fromisoformat(last_log['completed_at'].replace('Z', '+00:00'))
-            completed_at_display = completed_dt.strftime('%d/%m/%Y %I:%M %p AEST')
+            completed_aest = completed_dt.astimezone(AEST)
+            completed_at_display = completed_aest.strftime('%d/%m/%Y %I:%M %p AEST')
         
-        if last_log.get('target_date'):
-            target_dt = datetime.strptime(last_log['target_date'], '%Y-%m-%d')
+        if last_log.get('import_date'):
+            target_dt = datetime.strptime(last_log['import_date'], '%Y-%m-%d')
             target_date_display = target_dt.strftime('%d/%m/%Y')
         
         return jsonify({
@@ -155,14 +160,16 @@ def get_import_logs():
             
             if log.get('started_at'):
                 started_dt = datetime.fromisoformat(log['started_at'].replace('Z', '+00:00'))
-                started_at_display = started_dt.strftime('%d/%m/%Y %I:%M %p AEST')
+                started_aest = started_dt.astimezone(AEST)
+                started_at_display = started_aest.strftime('%d/%m/%Y %I:%M %p AEST')
             
             if log.get('completed_at'):
                 completed_dt = datetime.fromisoformat(log['completed_at'].replace('Z', '+00:00'))
-                completed_at_display = completed_dt.strftime('%d/%m/%Y %I:%M %p AEST')
+                completed_aest = completed_dt.astimezone(AEST)
+                completed_at_display = completed_aest.strftime('%d/%m/%Y %I:%M %p AEST')
             
-            if log.get('target_date'):
-                target_dt = datetime.strptime(log['target_date'], '%Y-%m-%d')
+            if log.get('import_date'):
+                target_dt = datetime.strptime(log['import_date'], '%Y-%m-%d')
                 target_date_display = target_dt.strftime('%d/%m/%Y')
             
             logs_data.append({

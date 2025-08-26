@@ -106,6 +106,12 @@ class MeetingsImportService:
         is_jumps = meeting_data.get('isJumps', False)
         has_sectionals = meeting_data.get('hasSectionals', False)
         
+        # Extract timestamp fields from API
+        form_updated = meeting_data.get('formUpdated', '')
+        results_updated = meeting_data.get('resultsUpdated', '')
+        sectionals_updated = meeting_data.get('sectionalsUpdated', '')
+        ratings_updated = meeting_data.get('ratingsUpdated', '')
+        
         # Prepare meeting record
         meeting_record = {
             'pf_meeting_id': pf_meeting_id,
@@ -123,6 +129,10 @@ class MeetingsImportService:
             'is_barrier_trial': is_barrier_trial,
             'is_jumps': is_jumps,
             'has_sectionals': has_sectionals,
+            'form_updated': form_updated,
+            'results_updated': results_updated,
+            'sectionals_updated': sectionals_updated,
+            'ratings_updated': ratings_updated,
             'updated_at': datetime.now().isoformat()
         }
         
