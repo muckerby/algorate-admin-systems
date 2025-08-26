@@ -7,6 +7,7 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.modules.admin.user import user_bp
 from src.modules.admin.dashboard import admin_bp
+from src.modules.admin.data_management import admin_bp as data_admin_bp
 from src.modules.imports.meetings.meetings import meetings_bp
 from src.modules.auth.auth import auth_bp
 
@@ -18,6 +19,7 @@ CORS(app)
 
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(admin_bp, url_prefix='/api')
+app.register_blueprint(data_admin_bp, url_prefix='/api')
 app.register_blueprint(meetings_bp, url_prefix='/api')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 
