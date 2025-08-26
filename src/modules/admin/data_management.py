@@ -2,9 +2,9 @@ from flask import Blueprint, jsonify, request
 import os
 from supabase import create_client, Client
 
-data_admin_bp = Blueprint('data_admin', __name__)
+admin_bp = Blueprint('admin', __name__)
 
-@data_admin_bp.route('/admin/clear-data', methods=['POST'])
+@admin_bp.route('/admin/clear-data', methods=['POST'])
 def clear_test_data():
     """Clear test data from meetings and import_logs tables"""
     try:
@@ -55,7 +55,7 @@ def clear_test_data():
             'error': f"Failed to clear data: {str(e)}"
         }), 500
 
-@data_admin_bp.route('/admin/data-stats', methods=['GET'])
+@admin_bp.route('/admin/data-stats', methods=['GET'])
 def get_data_stats():
     """Get current data statistics"""
     try:
