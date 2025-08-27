@@ -137,6 +137,8 @@ class TaskScheduler:
             # Execute based on task type
             if task_type == 'meetings_import':
                 self._execute_meetings_import(task)
+            elif task_type == 'ratings_check':
+                self._execute_ratings_check(task)
             else:
                 raise Exception(f"Unknown task type: {task_type}")
             
@@ -215,6 +217,32 @@ class TaskScheduler:
         except Exception as e:
             print(f"Error archiving old meetings: {e}")
             return 0
+    
+    def _execute_ratings_check(self, task):
+        """Execute ratings update polling task"""
+        task_config = task.get('task_config', {})
+        
+        try:
+            from ..imports.meetings.ratings_polling_service import RatingsPollingService
+            
+            polling_service = RatingsPollingService()
+            
+            # Get configuration
+            days_back = task_config.get('days_back', 7)
+            auto_refresh = task_config.get('auto_refresh', True)
+            
+            # Run polling cycle
+            result = polling_service.run_ratings_polling_cycle(days_back, auto_refresh)
+            
+            if result.get('polling_completed'):
+                print(f"✅ Ratings polling completed: {result.get('summary')}")
+            else:
+                print(f"❌ Ratings polling failed: {result.get('summary')}")
+                raise Exception(result.get('error', 'Ratings polling failed'))
+                
+        except Exception as e:
+            print(f"Error in ratings polling: {e}")
+            raise
     
     def _update_task_completion(self, task_id, status, message):
         """Update task completion status"""

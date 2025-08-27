@@ -9,6 +9,7 @@ from src.modules.admin.user import user_bp
 from src.modules.admin.dashboard import admin_bp
 from src.modules.imports.meetings.meetings import meetings_bp
 from src.modules.imports.meetings.meeting_status_routes import meeting_status_bp
+from src.modules.imports.meetings.ratings_polling_routes import ratings_polling_bp
 from src.modules.auth.auth import auth_bp
 from src.modules.auth.two_factor import two_factor_bp
 from src.modules.scheduler.scheduler_routes import scheduler_bp
@@ -24,6 +25,7 @@ app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(admin_bp, url_prefix='/api')
 app.register_blueprint(meetings_bp, url_prefix='/api')
 app.register_blueprint(meeting_status_bp, url_prefix='/api')
+app.register_blueprint(ratings_polling_bp, url_prefix='/api')
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(two_factor_bp, url_prefix='/api/auth/2fa')
 app.register_blueprint(scheduler_bp, url_prefix='/api')
