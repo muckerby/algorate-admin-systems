@@ -1,71 +1,79 @@
-from flask import Blueprint, jsonify, request, session
-from datetime import datetime
-import hashlib
+from flask import Blueprint, request, jsonify, session
 import os
 
 auth_bp = Blueprint('auth', __name__)
 
-# Simple admin authentication (placeholder for future expansion)
-ADMIN_PASSWORD_HASH = None  # Will be set from environment variable
-
-def init_auth():
-    """Initialize authentication system"""
-    global ADMIN_PASSWORD_HASH
-    admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')  # Default for development
-    ADMIN_PASSWORD_HASH = hashlib.sha256(admin_password.encode()).hexdigest()
-
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """Simple admin login"""
+    """Authenticate user with password (first step)"""
     try:
         data = request.get_json()
-        password = data.get('password', '')
+        if not data:
+            return jsonify({'success': False, 'error': 'No data provided'}), 400
         
-        # Get admin password directly from environment (no hashing for simplicity)
-        admin_password = os.getenv('ADMIN_PASSWORD', 'admin123')
+        password = data.get('password')
+        if not password:
+            return jsonify({'success': False, 'error': 'Password is required'}), 400
         
+        # Get admin password from environment
+        admin_password = os.getenv('ADMIN_PASSWORD')
+        if not admin_password:
+            return jsonify({'success': False, 'error': 'Admin password not configured'}), 500
+        
+        # Verify password
         if password == admin_password:
-            session['authenticated'] = True
-            session['login_time'] = datetime.now().isoformat()
+            # Set password verification in session
+            session['password_verified'] = True
             
-            return jsonify({
-                'success': True,
-                'message': 'Authentication successful'
-            })
+            # Check if 2FA is enabled
+            has_2fa = bool(session.get('2fa_enabled') or os.getenv('ADMIN_2FA_SECRET'))
+            
+            if has_2fa:
+                # 2FA required - don't set full authentication yet
+                return jsonify({
+                    'success': True,
+                    'requires_2fa': True,
+                    'message': 'Password verified. Please enter your 2FA code.'
+                })
+            else:
+                # No 2FA - full authentication
+                session['authenticated'] = True
+                return jsonify({
+                    'success': True,
+                    'requires_2fa': False,
+                    'message': 'Login successful'
+                })
         else:
-            return jsonify({
-                'success': False,
-                'error': 'Invalid password'
-            }), 401
+            return jsonify({'success': False, 'error': 'Invalid password'}), 401
             
     except Exception as e:
-        return jsonify({
-            'success': False,
-            'error': f"Login failed: {str(e)}"
-        }), 500
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/logout', methods=['POST'])
 def logout():
     """Logout user"""
-    session.clear()
-    return jsonify({
-        'success': True,
-        'message': 'Logged out successfully'
-    })
+    try:
+        # Clear all session data
+        session.clear()
+        return jsonify({'success': True, 'message': 'Logged out successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @auth_bp.route('/status', methods=['GET'])
-def auth_status():
-    """Check authentication status"""
-    authenticated = session.get('authenticated', False)
-    login_time = session.get('login_time')
-    
-    return jsonify({
-        'success': True,
-        'data': {
-            'authenticated': authenticated,
-            'login_time': login_time
-        }
-    })
+def status():
+    """Get authentication status"""
+    try:
+        return jsonify({
+            'success': True,
+            'data': {
+                'authenticated': session.get('authenticated', False),
+                'password_verified': session.get('password_verified', False),
+                '2fa_verified': session.get('2fa_verified', False),
+                '2fa_enabled': bool(session.get('2fa_enabled') or os.getenv('ADMIN_2FA_SECRET'))
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 # Authentication decorator (for future use)
 def require_auth(f):
