@@ -13,7 +13,7 @@ class ImportLogService:
         
         self.supabase: Client = create_client(supabase_url, supabase_key)
     
-    def create_log(self, import_type, trigger_type, import_date=None):
+    def create_log(self, import_type, trigger_type, import_date=None, import_mode='production'):
         """Create a new import log entry"""
         log_data = {
             'import_type': import_type,
@@ -21,6 +21,7 @@ class ImportLogService:
             'status': 'running',
             'started_at': datetime.now().isoformat(),
             'import_date': import_date,
+            'import_mode': import_mode,  # Add import mode tracking
             'records_processed': 0,
             'records_inserted': 0,
             'records_updated': 0,

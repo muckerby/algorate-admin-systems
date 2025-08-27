@@ -14,9 +14,10 @@ meetings_bp = Blueprint('meetings', __name__)
 def import_meetings():
     """Manual trigger for meetings import"""
     try:
-        # Get date from request or use tomorrow as default
+        # Get date and test mode from request or use defaults
         data = request.get_json() or {}
         date_str = data.get('date')
+        test_mode = data.get('test_mode', False)  # Default to production mode
         
         if date_str:
             # Convert from Australian format DD/MM/YYYY to ISO format
@@ -38,32 +39,41 @@ def import_meetings():
         import_service = MeetingsImportService()
         log_service = ImportLogService()
         
+        # Determine import mode and trigger type
+        import_mode = 'test' if test_mode else 'production'
+        
         # Start import log
         log_id = log_service.create_log(
             import_type='meetings',
             trigger_type='manual',
-            import_date=iso_date
+            import_date=iso_date,
+            import_mode=import_mode
         )
         
         try:
-            # Perform the import
-            result = import_service.import_meetings_for_date(iso_date)
+            # Perform the import with test mode
+            result = import_service.import_meetings_for_date(iso_date, test_mode)
             
             # Update log with success
+            message = f"Successfully imported {result.get('total_meetings', 0)} meetings"
+            if test_mode:
+                message += " (TEST MODE)"
+            
             log_service.update_log(
                 log_id=log_id,
                 status='completed',
                 records_processed=result.get('total_meetings', 0),
                 records_inserted=result.get('inserted', 0),
                 records_updated=result.get('updated', 0),
-                message=f"Successfully imported {result.get('total_meetings', 0)} meetings"
+                message=message
             )
             
             return jsonify({
                 'success': True,
-                'message': f"Import completed for {date_str}",
+                'message': f"Import completed for {date_str}" + (" (TEST MODE)" if test_mode else ""),
                 'data': result,
-                'log_id': log_id
+                'log_id': log_id,
+                'test_mode': test_mode
             })
             
         except Exception as e:
@@ -77,7 +87,8 @@ def import_meetings():
             return jsonify({
                 'success': False,
                 'error': str(e),
-                'log_id': log_id
+                'log_id': log_id,
+                'test_mode': test_mode
             }), 500
             
     except Exception as e:
@@ -276,7 +287,7 @@ def test_api_connection():
 
 @meetings_bp.route('/admin/clear-test-data', methods=['POST'])
 def clear_test_data():
-    """Clear test data from meetings and import_logs tables"""
+    """Clear only test data from meetings and import_logs tables"""
     try:
         from src.modules.imports.meetings.meetings_import_service import MeetingsImportService
         
@@ -290,27 +301,27 @@ def clear_test_data():
         
         results = {}
         
-        # Clear meetings table
+        # Clear test meetings only
         if clear_meetings:
             try:
-                # Delete all meetings
-                meetings_result = service.supabase.table('meetings').delete().neq('meeting_id', 0).execute()
+                # Delete only test meetings (is_test_data = true)
+                meetings_result = service.supabase.table('meetings').delete().eq('is_test_data', True).execute()
                 results['meetings_cleared'] = len(meetings_result.data) if meetings_result.data else 0
             except Exception as e:
                 results['meetings_error'] = str(e)
         
-        # Clear import_logs table  
+        # Clear test import logs only
         if clear_logs:
             try:
-                # Delete all import logs
-                logs_result = service.supabase.table('import_logs').delete().neq('id', '00000000-0000-0000-0000-000000000000').execute()
+                # Delete only test import logs (import_mode = 'test')
+                logs_result = service.supabase.table('import_logs').delete().eq('import_mode', 'test').execute()
                 results['logs_cleared'] = len(logs_result.data) if logs_result.data else 0
             except Exception as e:
                 results['logs_error'] = str(e)
         
         return jsonify({
             'success': True,
-            'message': 'Test data cleared successfully',
+            'message': 'Test data cleared successfully (production data preserved)',
             'results': results
         })
         

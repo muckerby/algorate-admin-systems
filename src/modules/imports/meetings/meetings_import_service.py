@@ -20,10 +20,14 @@ class MeetingsImportService:
         if not self.api_key:
             raise ValueError("Punting Form API key not configured")
     
-    def import_meetings_for_date(self, date_str):
+    def import_meetings_for_date(self, date_str, test_mode=False):
         """
         Import meetings for a specific date (ISO format YYYY-MM-DD)
         Returns dict with import statistics
+        
+        Args:
+            date_str: Date in YYYY-MM-DD format
+            test_mode: If True, marks imported data as test data
         """
         try:
             # Fetch meetings from API
@@ -47,7 +51,7 @@ class MeetingsImportService:
             # Process each meeting
             for meeting in meetings:
                 try:
-                    result = self._process_meeting(meeting, date_str)
+                    result = self._process_meeting(meeting, date_str, test_mode)
                     if result == 'inserted':
                         inserted += 1
                     elif result == 'updated':
@@ -82,7 +86,7 @@ class MeetingsImportService:
         
         return response.json()
     
-    def _process_meeting(self, meeting_data, date_str):
+    def _process_meeting(self, meeting_data, date_str, test_mode=False):
         """
         Process a single meeting and insert/update in database
         Returns 'inserted' or 'updated'
@@ -134,6 +138,7 @@ class MeetingsImportService:
             'sectionals_updated': sectionals_updated,
             'ratings_updated': ratings_updated,
             'status': 'active',  # New meetings are active by default
+            'is_test_data': test_mode,  # Mark as test data if in test mode
             'updated_at': datetime.now().isoformat()
         }
         
