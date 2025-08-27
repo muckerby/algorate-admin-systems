@@ -246,14 +246,25 @@ class TaskScheduler:
         
         return None
 
-# Global scheduler instance
-scheduler = TaskScheduler()
+# Global scheduler instance - initialized lazily
+scheduler = None
+
+def get_scheduler():
+    """Get or create the global scheduler instance"""
+    global scheduler
+    if scheduler is None:
+        scheduler = TaskScheduler()
+    return scheduler
 
 def start_scheduler():
     """Start the global scheduler"""
-    scheduler.start()
+    try:
+        get_scheduler().start()
+    except Exception as e:
+        print(f"Failed to start scheduler: {e}")
 
 def stop_scheduler():
     """Stop the global scheduler"""
-    scheduler.stop()
+    if scheduler is not None:
+        scheduler.stop()
 
