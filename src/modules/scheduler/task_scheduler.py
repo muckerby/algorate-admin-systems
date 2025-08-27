@@ -149,7 +149,7 @@ class TaskScheduler:
             self._update_task_completion(task_id, 'failed', error_message)
     
     def _execute_meetings_import(self, task):
-        """Execute meetings import task"""
+        """Execute meetings import task with automatic archiving"""
         task_config = task.get('task_config', {})
         
         # Determine import date
@@ -167,22 +167,27 @@ class TaskScheduler:
         )
         
         try:
+            # First, archive old meetings (enabled by default)
+            archive_count = 0
+            if task_config.get('archive_old_meetings', True):
+                archive_count = self._archive_old_meetings()
+            
             # Execute import
             result = self.meetings_service.import_meetings_for_date(import_date)
             
-            # Update import log
+            # Update import log with combined results
+            message = result.get('message', '')
+            if archive_count > 0:
+                message += f" | Archived {archive_count} old meetings"
+            
             self.import_log_service.update_log(
                 log_id=log_id,
                 status='completed',
                 records_processed=result.get('total_meetings', 0),
                 records_inserted=result.get('inserted', 0),
                 records_updated=result.get('updated', 0),
-                message=result.get('message', '')
+                message=message
             )
-            
-            # Close old meetings if configured
-            if task_config.get('close_old_meetings', False):
-                self._close_old_meetings()
             
         except Exception as e:
             # Update import log with error
@@ -193,15 +198,23 @@ class TaskScheduler:
             )
             raise
     
-    def _close_old_meetings(self):
-        """Close meetings older than today"""
-        today = datetime.now().strftime('%Y-%m-%d')
-        
-        # Update meetings older than today to archived status
-        self.supabase.table('meetings').update({
-            'status': 'archived',
-            'updated_at': datetime.now().isoformat()
-        }).lt('meeting_date', today).eq('status', 'active').execute()
+    def _archive_old_meetings(self):
+        """Archive meetings older than today"""
+        try:
+            from ..imports.meetings.meeting_status_service import MeetingStatusService
+            
+            status_service = MeetingStatusService()
+            result = status_service.archive_old_meetings()
+            
+            if result['success']:
+                return result['archived_count']
+            else:
+                print(f"Failed to archive old meetings: {result['error']}")
+                return 0
+                
+        except Exception as e:
+            print(f"Error archiving old meetings: {e}")
+            return 0
     
     def _update_task_completion(self, task_id, status, message):
         """Update task completion status"""

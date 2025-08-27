@@ -133,6 +133,7 @@ class MeetingsImportService:
             'results_updated': results_updated,
             'sectionals_updated': sectionals_updated,
             'ratings_updated': ratings_updated,
+            'status': 'active',  # New meetings are active by default
             'updated_at': datetime.now().isoformat()
         }
         
