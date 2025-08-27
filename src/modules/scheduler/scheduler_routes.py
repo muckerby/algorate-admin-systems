@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from croniter import croniter
 import json
 from .task_scheduler import scheduler
-from ...shared.user import require_auth
+from ...modules.auth.auth import require_auth
 import os
 from supabase import create_client, Client
 
