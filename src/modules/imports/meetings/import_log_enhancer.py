@@ -12,18 +12,18 @@ class ImportLogEnhancer:
     @staticmethod
     def format_import_type(trigger_type: str, import_mode: str = 'production') -> str:
         """Format import type for display"""
+        # If it's test mode, always show TEST regardless of trigger type
+        if import_mode == 'test':
+            return 'TEST'
+        
+        # Otherwise use trigger type mapping
         type_mapping = {
             'manual': 'MANUAL',
             'scheduled': 'AUTO',
-            'test': 'TEST'
+            'auto': 'AUTO'
         }
         
-        base_type = type_mapping.get(trigger_type, trigger_type.upper())
-        
-        if import_mode == 'test':
-            return f"{base_type} (TEST)"
-        
-        return base_type
+        return type_mapping.get(trigger_type, trigger_type.upper())
     
     @staticmethod
     def format_log_entry(log_entry: Dict) -> Dict:
@@ -56,11 +56,23 @@ class ImportLogEnhancer:
     def format_timestamp(timestamp_str: str) -> str:
         """Format timestamp for Australian display"""
         try:
-            dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-            # Convert to AEST (UTC+10)
-            aest_dt = dt.replace(tzinfo=None)  # Simplified for now
+            # Parse the timestamp (handle both with and without timezone)
+            if timestamp_str.endswith('Z'):
+                dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+            elif '+' in timestamp_str or timestamp_str.endswith('00'):
+                dt = datetime.fromisoformat(timestamp_str)
+            else:
+                # Assume UTC if no timezone info
+                dt = datetime.fromisoformat(timestamp_str).replace(tzinfo=datetime.now().astimezone().tzinfo.utc)
+            
+            # Convert to AEST (UTC+10) - handle both standard and daylight time
+            from datetime import timezone, timedelta
+            aest = timezone(timedelta(hours=10))
+            aest_dt = dt.astimezone(aest)
+            
             return aest_dt.strftime('%d/%m/%Y %I:%M %p AEST')
-        except:
+        except Exception as e:
+            # Fallback to original timestamp if parsing fails
             return timestamp_str
     
     @staticmethod
