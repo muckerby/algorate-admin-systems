@@ -279,9 +279,11 @@ def clear_test_data():
     """Clear only test data from meetings and import_logs tables"""
     try:
         from src.modules.imports.meetings.meetings_import_service import MeetingsImportService
+        from src.shared.import_log import ImportLogService
         
         # Initialize the service (which has Supabase access)
         service = MeetingsImportService()
+        log_service = ImportLogService()
         
         # Get request parameters
         data = request.get_json() or {}
@@ -307,6 +309,26 @@ def clear_test_data():
                 results['logs_cleared'] = len(logs_result.data) if logs_result.data else 0
             except Exception as e:
                 results['logs_error'] = str(e)
+        
+        # Create log entry for the clear operation
+        try:
+            total_cleared = results.get('meetings_cleared', 0) + results.get('logs_cleared', 0)
+            summary = f"Cleared {results.get('meetings_cleared', 0)} test meetings and {results.get('logs_cleared', 0)} test logs"
+            
+            log_service.create_log(
+                import_type='data_cleanup',
+                status='completed',
+                records_processed=total_cleared,
+                records_inserted=0,
+                records_updated=0,
+                target_date=None,
+                trigger_type='manual',
+                import_mode='production',  # Clear operation is always production
+                message=summary
+            )
+        except Exception as log_error:
+            # Don't fail the clear operation if logging fails
+            print(f"Failed to log clear operation: {log_error}")
         
         return jsonify({
             'success': True,

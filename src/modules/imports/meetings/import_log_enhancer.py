@@ -12,11 +12,15 @@ class ImportLogEnhancer:
     @staticmethod
     def format_import_type(trigger_type: str, import_mode: str = 'production') -> str:
         """Format import type for display"""
-        # If it's test mode, always show TEST regardless of trigger type
+        # Handle special import types
+        if trigger_type == 'data_cleanup':
+            return 'CLEANUP'
+        
+        # Prioritize import_mode for test vs production
         if import_mode == 'test':
             return 'TEST'
         
-        # Otherwise use trigger type mapping
+        # Map trigger types
         type_mapping = {
             'manual': 'MANUAL',
             'scheduled': 'AUTO',
@@ -56,23 +60,25 @@ class ImportLogEnhancer:
     def format_timestamp(timestamp_str: str) -> str:
         """Format timestamp for Australian display"""
         try:
+            from datetime import timezone, timedelta
+            
             # Parse the timestamp (handle both with and without timezone)
             if timestamp_str.endswith('Z'):
                 dt = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
-            elif '+' in timestamp_str or timestamp_str.endswith('00'):
+            elif '+' in timestamp_str or '-' in timestamp_str[-6:]:
                 dt = datetime.fromisoformat(timestamp_str)
             else:
                 # Assume UTC if no timezone info
-                dt = datetime.fromisoformat(timestamp_str).replace(tzinfo=datetime.now().astimezone().tzinfo.utc)
+                dt = datetime.fromisoformat(timestamp_str).replace(tzinfo=timezone.utc)
             
-            # Convert to AEST (UTC+10) - handle both standard and daylight time
-            from datetime import timezone, timedelta
+            # Convert to AEST (UTC+10)
             aest = timezone(timedelta(hours=10))
             aest_dt = dt.astimezone(aest)
             
             return aest_dt.strftime('%d/%m/%Y %I:%M %p AEST')
         except Exception as e:
             # Fallback to original timestamp if parsing fails
+            print(f"Timestamp parsing error: {e} for {timestamp_str}")
             return timestamp_str
     
     @staticmethod
