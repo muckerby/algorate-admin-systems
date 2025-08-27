@@ -4,6 +4,7 @@ import requests
 import os
 from src.shared.import_log import ImportLogService
 from src.modules.imports.meetings.meetings_import_service import MeetingsImportService
+from src.modules.imports.meetings.import_log_enhancer import ImportLogEnhancer
 
 # Define AEST timezone (UTC+10)
 AEST = timezone(timedelta(hours=10))
@@ -55,9 +56,7 @@ def import_meetings():
             result = import_service.import_meetings_for_date(iso_date, test_mode)
             
             # Update log with success
-            message = f"Successfully imported {result.get('total_meetings', 0)} meetings"
-            if test_mode:
-                message += " (TEST MODE)"
+            message = ImportLogEnhancer.create_import_summary(result, import_mode)
             
             log_service.update_log(
                 log_id=log_id,
@@ -157,51 +156,41 @@ def get_import_status():
 
 @meetings_bp.route('/import/meetings/logs', methods=['GET'])
 def get_import_logs():
-    """Get import history logs"""
+    """Get import history logs with enhanced formatting"""
     try:
         log_service = ImportLogService()
         logs = log_service.get_recent_logs(limit=20)
         
-        # Format logs for display
+        # Format logs for display using enhancer
         logs_data = []
         for log in logs:
-            started_at_display = None
-            completed_at_display = None
-            target_date_display = None
+            enhanced_log = ImportLogEnhancer.format_log_entry(log)
             
-            if log.get('started_at'):
-                started_dt = datetime.fromisoformat(log['started_at'].replace('Z', '+00:00'))
-                started_aest = started_dt.astimezone(AEST)
-                started_at_display = started_aest.strftime('%d/%m/%Y %I:%M %p AEST')
-            
-            if log.get('completed_at'):
-                completed_dt = datetime.fromisoformat(log['completed_at'].replace('Z', '+00:00'))
-                completed_aest = completed_dt.astimezone(AEST)
-                completed_at_display = completed_aest.strftime('%d/%m/%Y %I:%M %p AEST')
-            
-            if log.get('import_date'):
-                target_dt = datetime.strptime(log['import_date'], '%Y-%m-%d')
-                target_date_display = target_dt.strftime('%d/%m/%Y')
-            
+            # Extract key fields for frontend
             logs_data.append({
                 'id': log.get('id'),
                 'status': log.get('status'),
                 'trigger_type': log.get('trigger_type'),
-                'started_at': started_at_display,
-                'completed_at': completed_at_display,
-                'target_date': target_date_display,
+                'import_mode': log.get('import_mode', 'production'),
+                'formatted_type': enhanced_log['formatted_type'],
+                'formatted_date': enhanced_log.get('formatted_date'),
+                'target_date': log.get('import_date'),
                 'records_processed': log.get('records_processed', 0),
                 'records_inserted': log.get('records_inserted', 0),
                 'records_updated': log.get('records_updated', 0),
+                'summary': enhanced_log['summary'],
                 'message': log.get('message'),
-                'error_message': log.get('error_message')
+                'error_message': ImportLogEnhancer.format_error_message(log.get('error_message', '')),
+                'status_badge': enhanced_log['status_badge']
             })
+        
+        # Get statistics
+        stats = ImportLogEnhancer.get_import_statistics(logs)
         
         return jsonify({
             'success': True,
-            'data': {
-                'logs': logs_data
-            }
+            'logs': logs_data,
+            'statistics': stats
         })
         
     except Exception as e:
@@ -210,7 +199,7 @@ def get_import_logs():
             'error': f"Failed to get logs: {str(e)}"
         }), 500
 
-@meetings_bp.route('/import/meetings/test', methods=['GET', 'POST'])
+@meetings_bp.route('/import/meetings/test-api', methods=['GET'])
 def test_api_connection():
     """Test API connectivity"""
     try:

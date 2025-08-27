@@ -86,6 +86,17 @@ class MeetingsImportService:
         
         return response.json()
     
+    def _safe_get_field(self, data, field_names):
+        """
+        Safely extract field from data with multiple possible field names
+        Returns None if field is not found or is empty
+        """
+        for field_name in field_names:
+            value = data.get(field_name)
+            if value is not None and value != '':
+                return value
+        return None
+    
     def _process_meeting(self, meeting_data, date_str, test_mode=False):
         """
         Process a single meeting and insert/update in database
@@ -104,17 +115,34 @@ class MeetingsImportService:
         
         stage = meeting_data.get('stage', 'A')
         tab_meeting = meeting_data.get('tabMeeting', True)
-        rail_position = meeting_data.get('railPosition', '')
-        expected_condition = meeting_data.get('expectedCondition', '')
         is_barrier_trial = meeting_data.get('isBarrierTrial', False)
         is_jumps = meeting_data.get('isJumps', False)
         has_sectionals = meeting_data.get('hasSectionals', False)
         
-        # Extract timestamp fields from API
-        form_updated = meeting_data.get('formUpdated', '')
-        results_updated = meeting_data.get('resultsUpdated', '')
-        sectionals_updated = meeting_data.get('sectionalsUpdated', '')
-        ratings_updated = meeting_data.get('ratingsUpdated', '')
+        # Extract timestamp fields from API with better null handling
+        form_updated = self._safe_get_field(meeting_data, ['formUpdated', 'form_updated', 'FormUpdated'])
+        results_updated = self._safe_get_field(meeting_data, ['resultsUpdated', 'results_updated', 'ResultsUpdated'])
+        sectionals_updated = self._safe_get_field(meeting_data, ['sectionalsUpdated', 'sectionals_updated', 'SectionalsUpdated'])
+        ratings_updated = self._safe_get_field(meeting_data, ['ratingsUpdated', 'ratings_updated', 'RatingsUpdated'])
+        
+        # Enhanced field extraction with fallbacks
+        expected_condition = self._safe_get_field(meeting_data, ['expectedCondition', 'expected_condition', 'ExpectedCondition', 'condition'])
+        rail_position = self._safe_get_field(meeting_data, ['railPosition', 'rail_position', 'RailPosition', 'rail'])
+        
+        # Log missing fields for debugging
+        missing_fields = []
+        if not expected_condition:
+            missing_fields.append('expectedCondition')
+        if not results_updated:
+            missing_fields.append('resultsUpdated')
+        if not sectionals_updated:
+            missing_fields.append('sectionalsUpdated')
+        if not ratings_updated:
+            missing_fields.append('ratingsUpdated')
+            
+        if missing_fields:
+            print(f"⚠️ Missing fields for meeting {pf_meeting_id}: {', '.join(missing_fields)}")
+            print(f"📊 Available fields: {list(meeting_data.keys())}")
         
         # Prepare meeting record
         meeting_record = {
