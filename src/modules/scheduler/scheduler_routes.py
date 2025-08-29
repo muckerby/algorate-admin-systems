@@ -20,7 +20,7 @@ def get_supabase_client():
     
     return create_client(supabase_url, supabase_key)
 
-@scheduler_bp.route('/api/scheduler/tasks', methods=['GET'])
+@scheduler_bp.route('/scheduler/tasks', methods=['GET'])
 @require_auth
 def get_scheduled_tasks():
     """Get all scheduled tasks"""
@@ -62,7 +62,7 @@ def get_scheduled_tasks():
             'error': str(e)
         }), 500
 
-@scheduler_bp.route('/api/scheduler/tasks', methods=['POST'])
+@scheduler_bp.route('/scheduler/tasks', methods=['POST'])
 @require_auth
 def create_scheduled_task():
     """Create a new scheduled task"""
@@ -125,7 +125,7 @@ def create_scheduled_task():
             'error': str(e)
         }), 500
 
-@scheduler_bp.route('/api/scheduler/tasks/<task_id>', methods=['PUT'])
+@scheduler_bp.route('/scheduler/tasks/<task_id>', methods=['PUT'])
 @require_auth
 def update_scheduled_task(task_id):
     """Update a scheduled task"""
@@ -188,7 +188,7 @@ def update_scheduled_task(task_id):
             'error': str(e)
         }), 500
 
-@scheduler_bp.route('/api/scheduler/tasks/<task_id>', methods=['DELETE'])
+@scheduler_bp.route('/scheduler/tasks/<task_id>', methods=['DELETE'])
 @require_auth
 def delete_scheduled_task(task_id):
     """Delete a scheduled task"""
@@ -206,7 +206,7 @@ def delete_scheduled_task(task_id):
             'error': str(e)
         }), 500
 
-@scheduler_bp.route('/api/scheduler/tasks/<task_id>/run', methods=['POST'])
+@scheduler_bp.route('/scheduler/tasks/<task_id>/run', methods=['POST'])
 @require_auth
 def run_task_now(task_id):
     """Manually trigger a scheduled task"""
@@ -244,7 +244,7 @@ def run_task_now(task_id):
             'error': str(e)
         }), 500
 
-@scheduler_bp.route('/api/scheduler/status', methods=['GET'])
+@scheduler_bp.route('/scheduler/status', methods=['GET'])
 @require_auth
 def get_scheduler_status():
     """Get scheduler status"""
