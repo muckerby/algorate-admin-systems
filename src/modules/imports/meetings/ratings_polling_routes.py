@@ -8,7 +8,7 @@ from src.modules.auth.auth import require_auth
 
 ratings_polling_bp = Blueprint('ratings_polling', __name__)
 
-@ratings_polling_bp.route('/api/ratings/check-updates', methods=['POST'])
+@ratings_polling_bp.route('/ratings/check-updates', methods=['POST'])
 @require_auth
 def check_ratings_updates():
     """Check for ratings updates without triggering refresh"""
@@ -36,7 +36,7 @@ def check_ratings_updates():
             'error': f"Failed to check ratings updates: {str(e)}"
         }), 500
 
-@ratings_polling_bp.route('/api/ratings/refresh', methods=['POST'])
+@ratings_polling_bp.route('/ratings/refresh', methods=['POST'])
 @require_auth
 def trigger_ratings_refresh():
     """Manually trigger ratings refresh for specific meetings"""
@@ -64,7 +64,7 @@ def trigger_ratings_refresh():
             'error': f"Failed to refresh ratings: {str(e)}"
         }), 500
 
-@ratings_polling_bp.route('/api/ratings/poll', methods=['POST'])
+@ratings_polling_bp.route('/ratings/poll', methods=['POST'])
 @require_auth
 def run_ratings_polling():
     """Run complete ratings polling cycle"""
@@ -93,7 +93,7 @@ def run_ratings_polling():
             'error': f"Failed to run ratings polling: {str(e)}"
         }), 500
 
-@ratings_polling_bp.route('/api/ratings/status', methods=['GET'])
+@ratings_polling_bp.route('/ratings/status', methods=['GET'])
 @require_auth
 def get_ratings_status():
     """Get current ratings status and statistics"""
