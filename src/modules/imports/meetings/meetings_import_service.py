@@ -91,11 +91,66 @@ class MeetingsImportService:
         Safely extract field from data with multiple possible field names
         Returns None if field is not found or is empty
         """
+        # First try direct field access
         for field_name in field_names:
             value = data.get(field_name)
             if value is not None and value != '':
                 return value
+        
+        # If not found, try recursive search in nested objects
+        return self._find_field_recursive(data, field_names)
+    
+    def _find_field_recursive(self, data, field_names, path=""):
+        """
+        Recursively search for field in nested objects
+        Returns the first matching field value found
+        """
+        if isinstance(data, dict):
+            for key, value in data.items():
+                current_path = f"{path}.{key}" if path else key
+                
+                # Check if this key matches any of our target field names (case insensitive)
+                for field_name in field_names:
+                    if key.lower() == field_name.lower():
+                        if value is not None and value != '':
+                            return value
+                
+                # Recursively search in nested objects
+                if isinstance(value, dict):
+                    result = self._find_field_recursive(value, field_names, current_path)
+                    if result is not None:
+                        return result
+                elif isinstance(value, list) and len(value) > 0 and isinstance(value[0], dict):
+                    # Search in first item of list if it contains objects
+                    result = self._find_field_recursive(value[0], field_names, f"{current_path}[0]")
+                    if result is not None:
+                        return result
+        
         return None
+    
+    def _debug_available_fields(self, meeting_data, meeting_id):
+        """Log all available fields for debugging NULL field issues"""
+        print(f"🔍 DEBUG: Available fields for meeting {meeting_id}:")
+        
+        def print_fields(obj, prefix="", max_depth=3, current_depth=0):
+            if current_depth >= max_depth:
+                return
+                
+            if isinstance(obj, dict):
+                for key, value in obj.items():
+                    if isinstance(value, dict):
+                        print(f"  {prefix}{key}: [nested object with {len(value)} fields]")
+                        if current_depth < max_depth - 1:
+                            print_fields(value, f"{prefix}{key}.", max_depth, current_depth + 1)
+                    elif isinstance(value, list):
+                        print(f"  {prefix}{key}: [list with {len(value)} items]")
+                        if len(value) > 0 and isinstance(value[0], dict):
+                            print(f"  {prefix}{key}[0]: [object with {len(value[0])} fields]")
+                    else:
+                        value_str = str(value)[:50] + "..." if len(str(value)) > 50 else str(value)
+                        print(f"  {prefix}{key}: {type(value).__name__} = {value_str}")
+        
+        print_fields(meeting_data)
     
     def _process_meeting(self, meeting_data, date_str, test_mode=False):
         """
@@ -119,30 +174,62 @@ class MeetingsImportService:
         is_jumps = meeting_data.get('isJumps', False)
         has_sectionals = meeting_data.get('hasSectionals', False)
         
-        # Extract timestamp fields from API with better null handling
-        form_updated = self._safe_get_field(meeting_data, ['formUpdated', 'form_updated', 'FormUpdated'])
-        results_updated = self._safe_get_field(meeting_data, ['resultsUpdated', 'results_updated', 'ResultsUpdated'])
-        sectionals_updated = self._safe_get_field(meeting_data, ['sectionalsUpdated', 'sectionals_updated', 'SectionalsUpdated'])
-        ratings_updated = self._safe_get_field(meeting_data, ['ratingsUpdated', 'ratings_updated', 'RatingsUpdated'])
+        # Enhanced field extraction with comprehensive fallbacks and debugging
+        expected_condition_fields = [
+            'expectedCondition', 'expected_condition', 'ExpectedCondition', 
+            'condition', 'trackCondition', 'track_condition', 'trackConditions',
+            'weather', 'weatherCondition', 'going', 'surface', 'trackSurface'
+        ]
         
-        # Enhanced field extraction with fallbacks
-        expected_condition = self._safe_get_field(meeting_data, ['expectedCondition', 'expected_condition', 'ExpectedCondition', 'condition'])
-        rail_position = self._safe_get_field(meeting_data, ['railPosition', 'rail_position', 'RailPosition', 'rail'])
+        results_updated_fields = [
+            'resultsUpdated', 'results_updated', 'ResultsUpdated',
+            'resultUpdated', 'result_updated', 'lastResultUpdate',
+            'resultsLastUpdated', 'resultTime', 'finishedAt',
+            'completedAt', 'raceFinished', 'resultsAvailable'
+        ]
         
-        # Log missing fields for debugging
+        sectionals_updated_fields = [
+            'sectionalsUpdated', 'sectionals_updated', 'SectionalsUpdated',
+            'sectionalUpdated', 'sectional_updated', 'lastSectionalUpdate',
+            'sectionalsLastUpdated', 'sectionalTime', 'sectionalData',
+            'timingUpdated', 'sectionalAvailable'
+        ]
+        
+        ratings_updated_fields = [
+            'ratingsUpdated', 'ratings_updated', 'RatingsUpdated',
+            'ratingUpdated', 'rating_updated', 'lastRatingUpdate',
+            'ratingsLastUpdated', 'formUpdated', 'form_updated'
+        ]
+        
+        # Extract fields with enhanced search
+        expected_condition = self._safe_get_field(meeting_data, expected_condition_fields)
+        results_updated = self._safe_get_field(meeting_data, results_updated_fields)
+        sectionals_updated = self._safe_get_field(meeting_data, sectionals_updated_fields)
+        ratings_updated = self._safe_get_field(meeting_data, ratings_updated_fields)
+        
+        # Enhanced debugging for NULL fields
         missing_fields = []
         if not expected_condition:
-            missing_fields.append('expectedCondition')
+            missing_fields.append('expected_condition')
         if not results_updated:
-            missing_fields.append('resultsUpdated')
+            missing_fields.append('results_updated')
         if not sectionals_updated:
-            missing_fields.append('sectionalsUpdated')
+            missing_fields.append('sectionals_updated')
         if not ratings_updated:
-            missing_fields.append('ratingsUpdated')
+            missing_fields.append('ratings_updated')
             
         if missing_fields:
             print(f"⚠️ Missing fields for meeting {pf_meeting_id}: {', '.join(missing_fields)}")
-            print(f"📊 Available fields: {list(meeting_data.keys())}")
+            # Enable detailed debugging for first few meetings with missing fields
+            if len(missing_fields) >= 2:  # If 2 or more fields are missing, debug
+                self._debug_available_fields(meeting_data, pf_meeting_id)
+        
+        # Extract rail position with enhanced search
+        rail_position_fields = [
+            'railPosition', 'rail_position', 'RailPosition', 'rail',
+            'railPos', 'trackRail', 'barrierPosition'
+        ]
+        rail_position = self._safe_get_field(meeting_data, rail_position_fields)
         
         # Prepare meeting record
         meeting_record = {
@@ -161,7 +248,7 @@ class MeetingsImportService:
             'is_barrier_trial': is_barrier_trial,
             'is_jumps': is_jumps,
             'has_sectionals': has_sectionals,
-            'form_updated': form_updated,
+            'form_updated': ratings_updated,  # Use ratings_updated for form_updated
             'results_updated': results_updated,
             'sectionals_updated': sectionals_updated,
             'ratings_updated': ratings_updated,
