@@ -109,11 +109,6 @@ def create_scheduled_task():
         supabase = get_supabase_client()
         result = supabase.table('scheduled_tasks').insert(task_data).execute()
         
-        # Reload scheduler tasks
-        scheduler = get_scheduler()
-        if scheduler:
-            scheduler.load_tasks_from_db()
-        
         return jsonify({
             'success': True,
             'task': result.data[0] if result.data else None
