@@ -13,11 +13,11 @@ def get_raw_api_response():
         target_date = "29/08/2025"
         
         # Get API key from environment
-        api_key = os.getenv('PUNTINGFORM_API_KEY')
+        api_key = os.getenv('PUNTING_FORM_API_KEY')
         if not api_key:
             return jsonify({
                 'error': 'API key not found',
-                'message': 'PUNTINGFORM_API_KEY environment variable not set'
+                'message': 'PUNTING_FORM_API_KEY environment variable not set'
             }), 500
         
         # Make API call
