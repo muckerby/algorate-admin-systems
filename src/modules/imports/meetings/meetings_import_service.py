@@ -33,7 +33,7 @@ class MeetingsImportService:
             # Fetch meetings from API
             meetings_data = self._fetch_meetings_from_api(date_str)
             
-            if not meetings_data or 'payLoad' not in meetings_data:
+            if not meetings_data or 'Meetings' not in meetings_data:
                 return {
                     'total_meetings': 0,
                     'inserted': 0,
@@ -42,7 +42,7 @@ class MeetingsImportService:
                     'message': 'No meetings found for this date'
                 }
             
-            meetings = meetings_data['payLoad']
+            meetings = meetings_data['Meetings']
             total_meetings = len(meetings)
             inserted = 0
             updated = 0
@@ -58,7 +58,8 @@ class MeetingsImportService:
                         updated += 1
                 except Exception as e:
                     errors += 1
-                    print(f"Error processing meeting {meeting.get('MeetingId', 'unknown')}: {str(e)}")
+                    meeting_id = meeting.get('meetingId', meeting.get('MeetingId', meeting.get('id', 'unknown')))
+                    print(f"Error processing meeting {meeting_id}: {str(e)}")
             
             return {
                 'total_meetings': total_meetings,
@@ -157,16 +158,16 @@ class MeetingsImportService:
         Process a single meeting and insert/update in database
         Returns 'inserted' or 'updated'
         """
-        # Extract meeting data with correct field names
-        pf_meeting_id = str(meeting_data.get('meetingId', ''))
+        # Extract meeting data with correct field names - handle multiple possible formats
+        pf_meeting_id = str(meeting_data.get('meetingId', meeting_data.get('MeetingId', meeting_data.get('id', ''))))
         
-        # Track data is nested in 'track' object
-        track_data = meeting_data.get('track', {})
-        track_name = track_data.get('name', '')
-        track_id = str(track_data.get('trackId', ''))
-        track_state = track_data.get('state', '')
-        track_location = track_data.get('location', '')
-        track_abbreviation = track_data.get('abbrev', '')
+        # Track data might be nested in 'track' object or directly in meeting data
+        track_data = meeting_data.get('track', meeting_data.get('Track', meeting_data))
+        track_name = track_data.get('name', track_data.get('Name', track_data.get('trackName', track_data.get('TrackName', ''))))
+        track_id = str(track_data.get('trackId', track_data.get('TrackId', track_data.get('id', track_data.get('Id', '')))))
+        track_state = track_data.get('state', track_data.get('State', track_data.get('trackState', track_data.get('TrackState', ''))))
+        track_location = track_data.get('location', track_data.get('Location', track_data.get('trackLocation', '')))
+        track_abbreviation = track_data.get('abbrev', track_data.get('Abbrev', track_data.get('abbreviation', track_data.get('Abbreviation', ''))))
         
         stage = meeting_data.get('stage', 'A')
         tab_meeting = meeting_data.get('tabMeeting', True)
